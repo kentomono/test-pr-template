@@ -1,0 +1,39 @@
+name: Require GA Check on HTML/PHP additions
+
+on:
+  pull_request:
+    branches:
+      - develop
+      - master
+      - main
+    types: [opened, synchronize, edited, reopened]
+
+jobs:
+  ga-check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Get changed files
+        id: files
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const pr = context.payload.pull_request;
+            const files = await github.paginate(
+              github.rest.pulls.listFiles,
+              { owner: context.repo.owner, repo: context.repo.repo, pull_number: pr.number }
+            );
+
+            // 拡張子フィルタ
+            const targetFiles = files.filter(f => /\.(php|html)$/.test(f.filename));
+            const addedFiles = targetFiles.filter(f => f.status === 'added');
+
+            if (addedFiles.length > 0) {
+              core.notice(`New PHP/HTML files detected: ${addedFiles.map(f => f.filename).join(', ')}`);
+
+              const body = pr.body || '';
+              if (!body.includes('- [x] Google Analytics')) {
+                core.setFailed('❌ 新しいPHP/HTMLファイルが追加されましたが、GA確認チェックが未完了です。');
+              }
+            } else {
+              core.notice('No new PHP/HTML files added — skipping GA check.');
+            }
