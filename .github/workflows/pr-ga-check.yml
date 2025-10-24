@@ -6,8 +6,6 @@ on:
       - develop
       - master
       - main
-    paths:
-      - 'src/*.html'
     types: [opened, synchronize, edited, reopened]
 
 jobs:
